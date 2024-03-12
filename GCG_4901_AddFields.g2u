@@ -1,0 +1,107 @@
+Program.Sub.Preflight.Start
+Program.Sub.Preflight.End
+
+Program.Sub.Main.Start
+'This project was developed for HJ Enterprises on 2/16/2018 By SKC
+'This project will change the label values for User 3-4, add a hidden label and textbox.
+'The hidden textbox data is stored to a custom table GCG_4901_AddFields based on Sales Order, Sales Line, then the Value in the GAB textbox.
+'The hidden textbox will populate with stored data when the line change hook is fired.
+F.Intrinsic.Control.Try
+v.Local.sError.Declare(String)
+F.ODBC.Connection!con.openconnection(v.Ambient.PDSN, v.Ambient.PUser, v.Ambient.PPass)
+F.Intrinsic.Control.SelectCase(v.Caller.Hook)
+	F.Intrinsic.Control.Case(12010)	
+		'Populate hook so set the controls
+		F.Intrinsic.Control.CallSub(SetControls)
+	F.Intrinsic.Control.Case(12231)
+		'Post Save hook save the data to the custom table.
+		F.Intrinsic.Control.CallSub(Save)
+	F.Intrinsic.Control.Case(12705)
+		'Line Changes Populate the Hidden Control
+		F.Intrinsic.Control.CallSub(LineChange)
+F.Intrinsic.Control.EndSelect
+Function.Intrinsic.Control.Catch
+	Function.Intrinsic.String.Concat("Project: GCG_4901_AddFields.g2u",V.Ambient.Newline,V.Ambient.Newline,"Subroutine: ",V.Ambient.CurrentSubroutine,V.Ambient.NewLine,"Error Occurred ",V.Ambient.ErrorNumber," with description ",V.Ambient.ErrorDescription,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+	Function.Intrinsic.Control.CallSub(Unload)
+Function.Intrinsic.Control.EndTry
+Program.Sub.Main.End
+
+Program.Sub.Unload.Start
+F.Intrinsic.Control.Try
+v.Local.sError.Declare(String)
+F.ODBC.Connection!con.Close
+F.Intrinsic.Control.End
+Function.Intrinsic.Control.Catch
+	Function.Intrinsic.String.Concat("Project: GCG_4901_AddFields.g2u",V.Ambient.Newline,V.Ambient.Newline,"Subroutine: ",V.Ambient.CurrentSubroutine,V.Ambient.NewLine,"Error Occurred ",V.Ambient.ErrorNumber," with description ",V.Ambient.ErrorDescription,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+	Function.Intrinsic.Control.end
+Function.Intrinsic.Control.EndTry
+Program.Sub.Unload.End
+
+Program.Sub.Save.Start
+F.Intrinsic.Control.Try
+v.Local.sError.Declare(String)
+v.Local.sSql.Declare(String)
+'Save the value in the GAB text box to the custom table based on the Sale Order and Line number.
+F.Intrinsic.String.Build("Select * From GCG_4901_AddFields Where SalesOrder = '{0}' and SalesLine = '{1}'", v.Passed.000060, v.Passed.000051, v.Local.sSql)
+F.ODBC.Connection!con.OpenRecordSetRW("rst", v.Local.sSql)
+F.Intrinsic.Control.If(v.ODBC.con!rst.EOF, =, True)
+	'add record
+	F.ODBC.con!rst.AddNew()
+	F.ODBC.con!rst.Set!SalesOrder(v.Passed.000060)
+	F.ODBC.con!rst.Set!SalesLine(v.Passed.000051)
+F.Intrinsic.Control.EndIf
+F.ODBC.con!rst.Set!ActShipDate(v.Passed.GAB-TEXT-1)
+F.ODBC.con!rst.Update
+F.ODBC.con!rst.Close
+v.Passed.GAB-TEXT-1.Set("")
+Function.Intrinsic.Control.Catch
+	Function.Intrinsic.String.Concat("Project: GCG_4901_AddFields.g2u",V.Ambient.Newline,V.Ambient.Newline,"Subroutine: ",V.Ambient.CurrentSubroutine,V.Ambient.NewLine,"Error Occurred ",V.Ambient.ErrorNumber," with description ",V.Ambient.ErrorDescription,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+	Function.Intrinsic.Control.end
+Function.Intrinsic.Control.EndTry
+Program.Sub.Save.End
+
+Program.Sub.SetControls.Start
+F.Intrinsic.Control.Try
+v.Local.sError.Declare(String)
+'Set the user fields 3-5 and the GAB Hidden control
+v.Passed.000089.Set("In House Date")
+v.Passed.000090.Set("Ack. Ship Date HJ")
+v.Passed.000091.Set("Mod. Ship Date Delay")
+V.Passed.GAB-LBL-1.Set("Actual Ship Date")
+F.Intrinsic.Variable.SetProperty("GAB-TEXT-1", "PL", "641")
+F.Intrinsic.Variable.SetProperty("GAB-TEXT-1", "PT", "377")
+F.Intrinsic.Variable.SetProperty("GAB-TEXT-1", "PW", "180")
+F.Intrinsic.UI.ChangeCallerProperty(v.Passed.GAB-TEXT-1, "HIDE",0)
+F.Intrinsic.UI.ChangeCallerProperty(v.Passed.GAB-TEXT-1, "LOCK",0)
+F.Intrinsic.Variable.SetProperty("GAB-LBL-1", "PL", "540")
+F.Intrinsic.Variable.SetProperty("GAB-LBL-1", "PT", "377")
+F.Intrinsic.Variable.SetProperty("GAB-LBL-1", "PW", "80")
+F.Intrinsic.UI.ChangeCallerProperty(v.Passed.GAB-LBL-1, "HIDE",0)
+F.Intrinsic.UI.ChangeCallerProperty(v.Passed.GAB-LBL-1, "LOCK",0)
+Function.Intrinsic.Control.Catch
+	Function.Intrinsic.String.Concat("Project: GCG_4901_AddFields.g2u",V.Ambient.Newline,V.Ambient.Newline,"Subroutine: ",V.Ambient.CurrentSubroutine,V.Ambient.NewLine,"Error Occurred ",V.Ambient.ErrorNumber," with description ",V.Ambient.ErrorDescription,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+	Function.Intrinsic.Control.end
+Function.Intrinsic.Control.EndTry
+Program.Sub.SetControls.End
+
+Program.Sub.LineChange.Start
+F.Intrinsic.Control.Try
+v.Local.sError.Declare(String)
+v.Local.sSql.Declare(String)
+'Check to see if there is a record to load
+F.Intrinsic.String.Build("Select ActShipDate from GCG_4901_AddFields Where SalesOrder = '{0}' and SalesLine = '{1}'", v.Passed.000060, v.Passed.000051, v.Local.sSql)
+F.ODBC.Connection!con.openLocalRecordSetRO("rst", v.Local.sSql)
+F.Intrinsic.Control.If(v.ODBC.con!rst.EOF, =, False)
+	v.Passed.GAB-TEXT-1.Set(v.ODBC.con!rst.FieldValTrim!ActShipDate)
+F.Intrinsic.Control.EndIf
+F.ODBC.con!rst.Close
+Function.Intrinsic.Control.Catch
+	Function.Intrinsic.String.Concat("Project: GCG_4901_AddFields.g2u",V.Ambient.Newline,V.Ambient.Newline,"Subroutine: ",V.Ambient.CurrentSubroutine,V.Ambient.NewLine,"Error Occurred ",V.Ambient.ErrorNumber," with description ",V.Ambient.ErrorDescription,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+	Function.Intrinsic.Control.end
+Function.Intrinsic.Control.EndTry
+Program.Sub.LineChange.End
